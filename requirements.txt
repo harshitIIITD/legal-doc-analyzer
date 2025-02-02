@@ -1,0 +1,11 @@
+torch
+transformers
+PyPDF2
+fastapi
+uvicorn
+mlflow
+docker
+pytest
+dvc
+python-multipart
+datasets

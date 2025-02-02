@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Legal Document Analyzer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .chat-container {
+            width: 600px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-header {
+            background: #4a90e2;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 18px;
+        }
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f9f9f9;
+        }
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+        }
+        .message.bot {
+            justify-content: flex-start;
+        }
+        .message.user {
+            justify-content: flex-end;
+        }
+        .message-content {
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 10px;
+        }
+        .message.bot .message-content {
+            background: #e1e1e1;
+            color: #333;
+        }
+        .message.user .message-content {
+            background: #4a90e2;
+            color: white;
+        }
+        .chat-input {
+            display: flex;
+            padding: 10px;
+            background: #fff;
+            border-top: 1px solid #ddd;
+        }
+        .chat-input input[type="file"] {
+            display: none;
+        }
+        .chat-input label {
+            background: #4a90e2;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .chat-input button {
+            background: #4a90e2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">Legal Document Analyzer</div>
+        <div class="chat-messages" id="chat-messages">
+            <div class="message bot">
+                <div class="message-content">Hi! Upload a legal document (PDF) to analyze its clauses.</div>
+            </div>
+        </div>
+        <div class="chat-input">
+            <label for="pdf-upload">Upload PDF</label>
+            <input type="file" id="pdf-upload" name="file" accept="application/pdf" required>
+            <button onclick="analyzeDocument()">Analyze</button>
+        </div>
+
+        <div class="chat-input" style="margin-top: 10px;">
+            <input type="text" id="user-question" placeholder="Ask a question about the document" 
+                style="flex:1; padding:10px 15px; border-radius:5px; border:1px solid #ddd;">
+            <button onclick="askQuestion()" style="margin-left:10px; padding:10px 20px; background:#4a90e2; color:white; border:none; border-radius:5px; cursor:pointer;">
+                Ask
+            </button>
+        </div>
+    </div>
+
+    <script>
+        async function analyzeDocument() {
+            const fileInput = document.getElementById('pdf-upload');
+            const chatMessages = document.getElementById('chat-messages');
+
+            if (!fileInput.files.length) {
+                alert('Please select a PDF file.');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Add user message
+            chatMessages.innerHTML += `
+                <div class="message user">
+                    <div class="message-content">Uploaded: ${file.name}</div>
+                </div>
+            `;
+
+            // Show loading message
+            chatMessages.innerHTML += `
+                <div class="message bot">
+                    <div class="message-content">Analyzing document...</div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Analysis failed');
+                }
+
+                const result = await response.json();
+
+                // Display results
+                chatMessages.innerHTML += `
+                    <div class="message bot">
+                        <div class="message-content">
+                            <strong>Analysis Results:</strong><br>
+                            Classification: ${result.classification.join(', ')}<br>
+                            Text Preview: ${result.text_preview}
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                chatMessages.innerHTML += `
+                    <div class="message bot">
+                        <div class="message-content">Error: ${error.message}</div>
+                    </div>
+                `;
+            }
+
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function askQuestion() {
+            const questionInput = document.getElementById('user-question');
+            const chatMessages = document.getElementById('chat-messages');
+            const question = questionInput.value.trim();
+
+            if (!question) {
+                alert('Please enter a question.');
+                return;
+            }
+
+            // Add user message
+            chatMessages.innerHTML += `
+                <div class="message user">
+                    <div class="message-content">${question}</div>
+                </div>
+            `;
+            
+            questionInput.value = '';
+
+            // Show loading message for bot response
+            chatMessages.innerHTML += `
+                <div class="message bot">
+                    <div class="message-content">Let me think...</div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({question})
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to get answer');
+                }
+                
+                const result = await response.json();
+                
+                // Remove previous loading message or update if needed
+                chatMessages.innerHTML += `
+                    <div class="message bot">
+                        <div class="message-content">
+                            <strong>Answer:</strong><br>
+                            ${result.answer}
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                chatMessages.innerHTML += `
+                    <div class="message bot">
+                        <div class="message-content">Error: Unable to retrieve an answer.</div>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

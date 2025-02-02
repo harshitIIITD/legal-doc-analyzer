@@ -1,0 +1,6 @@
+*.zip filter=lfs diff=lfs merge=lfs
+*.tar.gz filter=lfs diff=lfs merge=lfs
+*.mp4 filter=lfs diff=lfs merge=lfs
+*.iso filter=lfs diff=lfs merge=lfs
+*.psd filter=lfs diff=lfs merge=lfs
+mlruns/** filter=lfs diff=lfs merge=lfs -text
